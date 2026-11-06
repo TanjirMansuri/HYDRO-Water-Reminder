@@ -1,11 +1,11 @@
 package com.hydro.reminder;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 
 public class ReminderReceiver extends BroadcastReceiver {
@@ -19,13 +19,15 @@ public class ReminderReceiver extends BroadcastReceiver {
         String channelId = "hydro_water";
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             NotificationChannel channel = new NotificationChannel(
                 channelId,
                 "Water Reminder",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_LOW
             );
 
             channel.setSound(null, null);
+            channel.enableVibration(false);
             manager.createNotificationChannel(channel);
         }
 
@@ -39,6 +41,9 @@ public class ReminderReceiver extends BroadcastReceiver {
             .setContentText("पानी पीने का समय हो गया है!")
             .setAutoCancel(true);
 
-        manager.notify(1001, builder.build());
+        manager.notify((int) System.currentTimeMillis(), builder.build());
+
+        // Schedule the next reminder automatically
+        ReminderScheduler.scheduleNext(context);
     }
 }

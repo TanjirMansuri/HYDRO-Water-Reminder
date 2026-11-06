@@ -5,7 +5,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 
 import java.util.Calendar;
 
@@ -17,15 +16,12 @@ public class ReminderScheduler {
             context.getSharedPreferences("HYDRO", Context.MODE_PRIVATE);
 
         if (prefs.getBoolean("ride_mode", false)) {
+            cancel(context);
             return;
         }
 
         Calendar now = Calendar.getInstance();
         Calendar next = Calendar.getInstance();
-
-        int day = now.get(Calendar.DAY_OF_WEEK);
-        boolean weekend =
-            day == Calendar.SATURDAY || day == Calendar.SUNDAY;
 
         int[][] weekdayTimes = {
             {5,15}, {7,45}, {9,15}, {10,45},
@@ -38,31 +34,37 @@ public class ReminderScheduler {
             {16,0}, {17,30}, {19,0}, {20,30}
         };
 
-        int[][] times = weekend ? weekendTimes : weekdayTimes;
-
         boolean found = false;
 
-        for (int i = 0; i < 8; i++) {
-            if (weekend && i >= weekendTimes.length) break;
-            if (!weekend && i >= weekdayTimes.length) break;
+        for (int dayOffset = 0; dayOffset < 8 && !found; dayOffset++) {
 
-            next.set(Calendar.HOUR_OF_DAY, times[i][0]);
-            next.set(Calendar.MINUTE, times[i][1]);
-            next.set(Calendar.SECOND, 0);
-            next.set(Calendar.MILLISECOND, 0);
+            Calendar checkDay = (Calendar) now.clone();
+            checkDay.add(Calendar.DAY_OF_YEAR, dayOffset);
 
-            if (next.after(now)) {
-                found = true;
-                break;
+            int day = checkDay.get(Calendar.DAY_OF_WEEK);
+
+            boolean weekend =
+                day == Calendar.SATURDAY || day == Calendar.SUNDAY;
+
+            int[][] times = weekend ? weekendTimes : weekdayTimes;
+
+            for (int[] time : times) {
+
+                next = (Calendar) checkDay.clone();
+
+                next.set(Calendar.HOUR_OF_DAY, time[0]);
+                next.set(Calendar.MINUTE, time[1]);
+                next.set(Calendar.SECOND, 0);
+                next.set(Calendar.MILLISECOND, 0);
+
+                if (next.after(now)) {
+                    found = true;
+                    break;
+                }
             }
         }
 
-        if (!found) {
-            next.add(Calendar.DAY_OF_YEAR, 1);
-            next.set(Calendar.HOUR_OF_DAY, weekend ? 10 : 5);
-            next.set(Calendar.MINUTE, weekend ? 0 : 15);
-            next.set(Calendar.SECOND, 0);
-        }
+        if (!found) return;
 
         Intent intent = new Intent(context, ReminderReceiver.class);
 
@@ -87,6 +89,7 @@ public class ReminderScheduler {
     }
 
     public static void cancel(Context context) {
+
         Intent intent = new Intent(context, ReminderReceiver.class);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(

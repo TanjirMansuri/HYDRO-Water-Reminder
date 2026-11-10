@@ -8,6 +8,7 @@
     <application
         android:allowBackup="true"
         android:label="HYDRO"
+        android:icon="@drawable/hydro_icon"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:supportsRtl="true">
 

@@ -5,10 +5,13 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import java.util.Calendar;
 
 public class ReminderScheduler {
+
+    private static final int REQUEST_CODE = 1001;
 
     public static void scheduleNext(Context context) {
 
@@ -44,7 +47,8 @@ public class ReminderScheduler {
             int day = checkDay.get(Calendar.DAY_OF_WEEK);
 
             boolean weekend =
-                day == Calendar.SATURDAY || day == Calendar.SUNDAY;
+                day == Calendar.SATURDAY ||
+                day == Calendar.SUNDAY;
 
             int[][] times = weekend ? weekendTimes : weekdayTimes;
 
@@ -70,7 +74,7 @@ public class ReminderScheduler {
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             context,
-            1001,
+            REQUEST_CODE,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT |
             PendingIntent.FLAG_IMMUTABLE
@@ -79,7 +83,30 @@ public class ReminderScheduler {
         AlarmManager alarm =
             (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-        if (alarm != null) {
+        if (alarm == null) return;
+
+        try {
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                alarm.canScheduleExactAlarms()) {
+
+                alarm.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    next.getTimeInMillis(),
+                    pendingIntent
+                );
+
+            } else {
+
+                alarm.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    next.getTimeInMillis(),
+                    pendingIntent
+                );
+            }
+
+        } catch (SecurityException e) {
+
             alarm.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 next.getTimeInMillis(),
@@ -94,7 +121,7 @@ public class ReminderScheduler {
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             context,
-            1001,
+            REQUEST_CODE,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT |
             PendingIntent.FLAG_IMMUTABLE
